@@ -1,4 +1,6 @@
 const express = require("express");
+const cors = require('cors')
+const app = express();
 const bodyParser = require("body-parser");
 const logger = require("morgan");
 const dotenv = require("dotenv");
@@ -8,12 +10,10 @@ const { upload } = require("./utils/upload");
 const archiver = require("archiver");
 const { Transform } = require("stream");
 
-
+app.use(cors())
 dotenv.config();
 
 const port = process.env.PORT || 3000;
-
-const app = express();
 
 // Connect to database
 connectDB();
@@ -231,6 +231,50 @@ app.get("/files", (req, res) => {
         }
     );
 });
+
+// Get files information from the GridFS files collection
+app.get("/info/files", async (req, res) => {
+    try {
+        const filesInfo = await bucket.find().toArray();
+        res.status(200).json(filesInfo);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error fetching file information', details: error.message });
+    }
+});
+
+
+// Get a specific file by its fileId
+app.get("/file/:fileId", async (req, res) => {
+    try {
+        const { fileId } = req.params;
+
+        // Validate fileId
+        if (!mongoose.Types.ObjectId.isValid(fileId)) {
+            return res.status(400).json({ error: 'Invalid fileId' });
+        }
+
+        // Check if the file exists
+        const file = await bucket.find({ _id: new mongoose.Types.ObjectId(fileId) }).toArray();
+        if (file.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        // Set headers for file download
+        res.set('Content-Type', file[0].contentType);
+        res.set('Content-Disposition', 'inline');
+
+        // Create a stream to read from GridFS
+        const downloadStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+
+        // Pipe the stream to the response
+        downloadStream.pipe(res);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error downloading file' });
+    }
+});
+
 
 
 
