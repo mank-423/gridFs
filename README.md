@@ -18,3 +18,5 @@ npm install mongodb@5.9.1
 
 This instantly fixed the issue
 
+- Front-end implementation
+<img width="960" alt="image" src="https://github.com/mank-423/gridFs/assets/96490105/3e271a20-5b55-44b2-b32f-5fc317d33566">
